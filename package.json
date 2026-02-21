@@ -1,0 +1,28 @@
+{
+  "name": "operator",
+  "version": "1.0.0",
+  "description": "Multimodal AI agent for accessibility - eliminate technological barriers",
+  "private": true,
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "setup": "powershell -ExecutionPolicy Bypass -File ./setup.ps1",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && python main.py",
+    "build:frontend": "cd frontend && npm run build",
+    "lint:frontend": "cd frontend && npm run lint",
+    "storybook": "cd frontend && npm run storybook"
+  },
+  "keywords": [
+    "accessibility",
+    "ai",
+    "wcag",
+    "a11y",
+    "speech-to-text",
+    "text-to-speech",
+    "multimodal"
+  ],
+  "author": "",
+  "license": "MIT"
+}

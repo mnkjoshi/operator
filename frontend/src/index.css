@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Clarity Design System Base Styles */
+@layer base {
+  /* Import Atkinson Hyperlegible font */
+  @font-face {
+    font-family: 'Atkinson Hyperlegible';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap');
+  }
+
+  html {
+    /* Enable 300% zoom without layout breaking */
+    font-size: 18px;
+  }
+
+  body {
+    @apply font-sans;
+    line-height: 1.5;
+  }
+
+  /* High contrast focus indicator */
+  *:focus-visible {
+    outline: 3px solid theme('colors.clarity.focus');
+    outline-offset: 2px;
+  }
+
+  /* Remove default focus for mouse users, keep for keyboard */
+  *:focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+/* Dark mode by default */
+:root {
+  background-color: #121212;
+  color: #FFFFFF;
+}
+
+/* Light mode */
+@media (prefers-color-scheme: light) {
+  :root {
+    background-color: #FAFAFA;
+    color: #000000;
+  }
+}
+
+/* Support manual theme override */
+[data-theme="dark"] {
+  background-color: #121212;
+  color: #FFFFFF;
+}
+
+[data-theme="light"] {
+  background-color: #FAFAFA;
+  color: #000000;
+}
