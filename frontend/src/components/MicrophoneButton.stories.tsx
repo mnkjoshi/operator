@@ -26,18 +26,21 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     isListening: false,
+    onToggle: () => undefined,
   },
 };
 
 export const Listening: Story = {
   args: {
     isListening: true,
+    onToggle: () => undefined,
   },
 };
 
 export const Interactive: Story = {
   args: {
     isListening: false,
+    onToggle: () => undefined,
   },
   play: async ({ canvasElement }) => {
     // Accessibility testing example

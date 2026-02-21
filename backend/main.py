@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
 
-from routers import agent, speech, simplify
+from routers import openrouter
 
 # Load environment variables
 load_dotenv()
@@ -11,8 +11,11 @@ load_dotenv()
 # Initialize FastAPI app
 app = FastAPI(
     title="Operator API",
-    description="Multimodal AI agent for accessibility",
-    version="1.0.0"
+    description="OpenRouter-only API",
+    version="1.0.0",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
 
 # CORS middleware for frontend communication
@@ -26,31 +29,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(agent.router, prefix="/api/agent", tags=["agent"])
-app.include_router(speech.router, prefix="/api/speech", tags=["speech"])
-app.include_router(simplify.router, prefix="/api/simplify", tags=["simplify"])
-
-@app.get("/")
-async def root():
-    """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "service": "Operator API",
-        "version": "1.0.0"
-    }
-
-@app.get("/api/health")
-async def health_check():
-    """Detailed health check"""
-    return {
-        "status": "healthy",
-        "services": {
-            "gemini": os.getenv("GEMINI_API_KEY") is not None,
-            "openai": os.getenv("OPENAI_API_KEY") is not None,
-            "elevenlabs": os.getenv("ELEVENLABS_API_KEY") is not None,
-        }
-    }
+# Include only the OpenRouter router
+app.include_router(openrouter.router, prefix="/api", tags=["openrouter"])
 
 if __name__ == "__main__":
     import uvicorn

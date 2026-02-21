@@ -9,6 +9,8 @@ env/
 venv/
 ENV/
 .venv
+.venv/
+.venv*/
 
 # Build outputs
 dist/

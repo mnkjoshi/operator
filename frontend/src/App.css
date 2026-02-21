@@ -1,21 +1,20 @@
 /* Clarity Design System Utilities */
 .clarity-canvas {
-  background-color: var(--canvas-bg, #121212);
-  color: var(--text-color, #FFFFFF);
+  background-color: var(--bg-viewer);
+  color: var(--text-primary);
 }
 
-[data-theme="light"] .clarity-canvas {
-  --canvas-bg: #FAFAFA;
-  --text-color: #000000;
-}
-
-/* Ensure minimum touch targets */
-button, a, input, select, textarea {
+/* Ensure comfortable touch targets without forcing input layout */
+button, a {
   min-width: 48px;
   min-height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+input, select, textarea {
+  min-height: 48px;
 }
 
 /* Skip to main content link */
@@ -30,8 +29,8 @@ button, a, input, select, textarea {
   top: 0;
   transform: translateX(-50%);
   padding: 1rem;
-  background: #FFB000;
-  color: #000;
+  background: #f4f4f5;
+  color: #111217;
   text-decoration: none;
   border-radius: 0 0 4px 4px;
 }

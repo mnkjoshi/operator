@@ -7,29 +7,36 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Clarity Design System - WCAG 2.2 AAA Compliant
         clarity: {
           dark: {
-            canvas: '#121212',
-            text: '#FFFFFF',
+            canvas: '#1e1e1e',
+            text: '#cccccc',
           },
           light: {
             canvas: '#FAFAFA',
             text: '#000000',
           },
-          focus: '#FFB000', // Amber for focus states and listening indicator
+          focus: '#007acc',
         },
       },
       fontFamily: {
-        // Atkinson Hyperlegible font
-        sans: ['Atkinson Hyperlegible', 'system-ui', 'sans-serif'],
+        sans: [
+          '"SF Pro Text"',
+          '"SF Pro Display"',
+          '"SF Pro Icons"',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"Helvetica Neue"',
+          'Helvetica',
+          'Arial',
+          'sans-serif',
+        ],
       },
       fontSize: {
-        // Baseline 18px, scalable to 300%
-        base: ['18px', { lineHeight: '1.5' }],
+        base: ['17px', { lineHeight: '1.55' }],
       },
       lineHeight: {
-        'clarity': '1.5', // 1.5x standard for readability
+        'clarity': '1.55',
       },
       spacing: {
         // Minimum touch target: 48x48px

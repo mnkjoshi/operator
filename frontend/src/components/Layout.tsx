@@ -25,29 +25,29 @@ const Layout = () => {
   }, [location.pathname])
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[var(--bg-app)] text-[var(--text-primary)]">
       {/* Skip to main content link for keyboard users */}
       <a href="#main-content" className="skip-to-main">
         Skip to main content
       </a>
 
-      <div className="flex flex-1 flex-col lg:flex-row">
-        {/* Canvas: 70% width on large screens */}
+      <div className="flex flex-1 flex-col lg:flex-row lg:gap-0">
+        {/* Viewer: dominant panel on desktop */}
         <main
           id="main-content"
           ref={mainRef}
-          className="flex-1 lg:w-[70%] clarity-canvas p-6 overflow-auto"
+          className="flex-1 p-3 lg:p-4 overflow-hidden"
           tabIndex={-1}
-          aria-label="Main content area"
+          aria-label="Embedded content viewer"
         >
           <Canvas>
             <Outlet />
           </Canvas>
         </main>
 
-        {/* Agent Panel: 30% width on large screens */}
+        {/* Chat panel */}
         <aside
-          className="lg:w-[30%] border-l border-gray-700"
+          className="w-full lg:w-[320px] xl:w-[360px] flex-shrink-0 border-t border-[var(--border-color)] lg:border-t-0 lg:border-l bg-[var(--bg-panel)] flex flex-col"
           role="complementary"
           aria-label="AI Assistant Panel"
         >

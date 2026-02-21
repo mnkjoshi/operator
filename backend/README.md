@@ -1,62 +1,66 @@
 # Operator Backend
 
-Backend API for the Operator accessibility platform.
+Minimal FastAPI backend exposing a single OpenRouter endpoint.
 
-## Features
+## API Surface
 
-- **Multimodal AI Agent**: Powered by Google Gemini for understanding and responding to user queries
-- **Speech-to-Text**: OpenAI Whisper integration for voice input
-- **Text-to-Speech**: ElevenLabs for natural voice output
-- **Content Simplification**: AI-powered content simplification for better accessibility
+- `POST /api/openrouter`
 
-## Setup
+No other application endpoints are provided.
 
-1. Install dependencies:
+## Request Contract
+
+```json
+{
+  "message": "Required user message",
+  "context": "Optional context",
+  "stream": true
+}
+```
+
+- `message` is required.
+- `context` is optional.
+- `stream` defaults to `true`.
+
+## Response Contract
+
+### Non-stream (`stream=false`)
+
+```json
+{
+  "response": "...",
+  "model": "openai/gpt-oss-120b"
+}
+```
+
+### Stream (`stream=true`)
+
+SSE events:
+- `event: delta` with partial text
+- `event: done` with final payload `{ "response": "...", "model": "..." }`
+- `event: error` with normalized upstream error
+
+## Environment Variables
+
+Required:
+- `OPENROUTER_API_KEY`
+
+Recommended:
+- `OPENROUTER_MODEL`
+- `OPENROUTER_FALLBACK_MODELS`
+- `OPENROUTER_APP_URL`
+- `OPENROUTER_APP_NAME`
+- `OPENROUTER_TIMEOUT_SECONDS`
+- `OPENROUTER_MAX_RETRIES`
+- `OPENROUTER_RETRY_BASE_MS`
+- `OPENROUTER_PROVIDER_ALLOW_FALLBACKS`
+- `OPENROUTER_PROVIDER_REQUIRE_PARAMETERS`
+- `OPENROUTER_PROVIDER_SORT`
+
+## Run
+
 ```bash
 pip install -r requirements.txt
-```
-
-2. Create a `.env` file from `.env.example`:
-```bash
 cp .env.example .env
-```
-
-3. Add your API keys to `.env`:
-   - `GEMINI_API_KEY`: Get from Google AI Studio
-   - `OPENAI_API_KEY`: Get from OpenAI Platform
-   - `ELEVENLABS_API_KEY`: Get from ElevenLabs
-
-4. Run the server:
-```bash
 python main.py
 ```
-
-Or using uvicorn directly:
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-## API Endpoints
-
-### Health Check
-- `GET /` - Basic health check
-- `GET /api/health` - Detailed health check with service status
-
-### Agent
-- `POST /api/agent/chat` - Chat with the AI agent
-- `POST /api/agent/action` - Execute specific actions (simplify, explain, read)
-
-### Speech
-- `POST /api/speech/stt` - Speech-to-Text (Whisper)
-- `POST /api/speech/tts` - Text-to-Speech (ElevenLabs)
-- `GET /api/speech/voices` - List available voices
-
-### Simplify
-- `POST /api/simplify/` - Simplify complex content
-- `POST /api/simplify/remove-noise` - Remove ads and unnecessary elements
-
-## Development
-
-API documentation available at:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc

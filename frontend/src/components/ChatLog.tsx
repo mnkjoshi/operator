@@ -7,36 +7,28 @@ interface ChatLogProps {
   messages: Message[]
 }
 
-/**
- * High-contrast chat log with ARIA live region
- */
 const ChatLog = ({ messages }: ChatLogProps) => {
   return (
     <div
       role="log"
       aria-live="polite"
       aria-label="Conversation history"
-      className="space-y-4"
+      className="space-y-2"
     >
       {messages.length === 0 ? (
-        <p className="text-gray-400 text-center py-8">
-          No messages yet. Start speaking to begin.
-        </p>
+        <div className="h-full min-h-[120px]" />
       ) : (
         messages.map((message, index) => (
           <div
             key={index}
             className={`
-              p-4 rounded-lg
+              max-w-[92%] px-3 py-2 rounded-xl text-sm
               ${message.role === 'user' 
-                ? 'bg-gray-800 text-white ml-4' 
-                : 'bg-gray-700 text-white mr-4'
+                ? 'bg-[var(--bg-panel-elev)] text-[var(--text-primary)] ml-auto' 
+                : 'bg-[var(--bg-panel-soft)] text-[var(--text-muted)] mr-auto'
               }
             `}
           >
-            <div className="font-bold mb-1">
-              {message.role === 'user' ? 'You' : 'Agent'}
-            </div>
             <div>{message.text}</div>
           </div>
         ))

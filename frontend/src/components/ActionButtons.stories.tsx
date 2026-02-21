@@ -20,11 +20,15 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  args: {},
+  args: {
+    onAction: () => undefined,
+  },
 };
 
 export const WithCustomActions: Story = {
-  args: {},
+  args: {
+    onAction: () => undefined,
+  },
   parameters: {
     docs: {
       description: {
