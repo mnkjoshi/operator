@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Canvas from './Canvas'
 import AgentPanel from './AgentPanel'
+import { BrowserState } from '../types/browser'
 
 /**
  * Main layout component featuring:
@@ -10,48 +10,57 @@ import AgentPanel from './AgentPanel'
  * - Accessible routing with focus management
  */
 const Layout = () => {
-  const location = useLocation()
   const mainRef = useRef<HTMLElement>(null)
+  const [browserState, setBrowserState] = useState<BrowserState>({
+    sessionId: null,
+    url: '',
+    screenshotBase64: null,
+    updatedAtMs: null,
+    lastAction: null,
+    lastActionStatus: null,
+    isBusy: false,
+  })
 
-  // Manage focus on route changes for screen readers
+  const onBrowserStateChange = useCallback((update: Partial<BrowserState>) => {
+    setBrowserState((current) => ({ ...current, ...update }))
+  }, [])
+
+  // Manage initial focus for screen readers
   useEffect(() => {
-    // Find the first h1 or focus the main element
     const h1 = mainRef.current?.querySelector('h1')
     if (h1) {
       (h1 as HTMLElement).focus()
     } else if (mainRef.current) {
       mainRef.current.focus()
     }
-  }, [location.pathname])
+  }, [])
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--bg-app)] text-[var(--text-primary)]">
+    <div className="h-screen overflow-hidden flex flex-col bg-[var(--bg-app)] text-[var(--text-primary)]">
       {/* Skip to main content link for keyboard users */}
       <a href="#main-content" className="skip-to-main">
         Skip to main content
       </a>
 
-      <div className="flex flex-1 flex-col lg:flex-row lg:gap-0">
+      <div className="flex flex-1 min-h-0 flex-col lg:flex-row lg:gap-0">
         {/* Viewer: dominant panel on desktop */}
         <main
           id="main-content"
           ref={mainRef}
           className="flex-1 p-3 lg:p-4 overflow-hidden"
           tabIndex={-1}
-          aria-label="Embedded content viewer"
+          aria-label="Playwright browser viewer"
         >
-          <Canvas>
-            <Outlet />
-          </Canvas>
+          <Canvas browserState={browserState} />
         </main>
 
         {/* Chat panel */}
         <aside
-          className="w-full lg:w-[320px] xl:w-[360px] flex-shrink-0 border-t border-[var(--border-color)] lg:border-t-0 lg:border-l bg-[var(--bg-panel)] flex flex-col"
+          className="w-full lg:w-[320px] xl:w-[360px] flex-shrink-0 min-h-0 border-t border-[var(--border-color)] lg:border-t-0 lg:border-l bg-[var(--bg-panel)] flex flex-col"
           role="complementary"
           aria-label="AI Assistant Panel"
         >
-          <AgentPanel />
+          <AgentPanel onBrowserStateChange={onBrowserStateChange} />
         </aside>
       </div>
     </div>

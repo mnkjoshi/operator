@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
 
-from routers import openrouter
+from routers import computer_use
 
 # Load environment variables
 load_dotenv()
@@ -11,7 +11,7 @@ load_dotenv()
 # Initialize FastAPI app
 app = FastAPI(
     title="Operator API",
-    description="OpenRouter-only API",
+    description="Gemini computer-use API",
     version="1.0.0",
     docs_url=None,
     redoc_url=None,
@@ -29,8 +29,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include only the OpenRouter router
-app.include_router(openrouter.router, prefix="/api", tags=["openrouter"])
+# Include API routers
+app.include_router(computer_use.router, prefix="/api", tags=["gemini"])
+
+
+@app.on_event("shutdown")
+async def on_shutdown() -> None:
+    await computer_use.service.close_all()
 
 if __name__ == "__main__":
     import uvicorn

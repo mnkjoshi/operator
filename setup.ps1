@@ -1,6 +1,6 @@
 # Operator Setup Script for Windows PowerShell
 
-Write-Host "Setting up Operator..." -ForegroundColor Cyan
+Write-Host "Setting up Operator (Gemini-only)..." -ForegroundColor Cyan
 
 # Check Node.js
 Write-Host "`nChecking Node.js..." -ForegroundColor Yellow
@@ -54,11 +54,14 @@ if ($pythonVersion) {
         Write-Host "Some backend dependencies may have failed" -ForegroundColor Yellow
     }
 
+    Write-Host "Installing Playwright Chromium..." -ForegroundColor Yellow
+    python -m playwright install chromium
+
     if (!(Test-Path ".env")) {
         Write-Host "Creating .env file..." -ForegroundColor Yellow
         Copy-Item ".env.example" ".env"
         Write-Host "Please edit backend/.env and set:" -ForegroundColor Yellow
-        Write-Host " - OPENROUTER_API_KEY" -ForegroundColor White
+        Write-Host " - GEMINI_API_KEY" -ForegroundColor White
     } else {
         Write-Host ".env file exists" -ForegroundColor Green
     }
@@ -68,6 +71,6 @@ Set-Location ..
 
 Write-Host "`nSetup Complete" -ForegroundColor Green
 Write-Host "Next steps:" -ForegroundColor Cyan
-Write-Host "1. Set OPENROUTER_API_KEY in backend/.env" -ForegroundColor White
+Write-Host "1. Set GEMINI_API_KEY in backend/.env" -ForegroundColor White
 Write-Host "2. Start frontend: cd frontend && npm run dev" -ForegroundColor White
 Write-Host "3. Start backend:  cd backend && python main.py" -ForegroundColor White

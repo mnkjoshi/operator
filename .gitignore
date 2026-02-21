@@ -43,9 +43,6 @@ coverage/
 .nyc_output/
 .pytest_cache/
 
-# Storybook
-storybook-static/
-
 # Misc
 .cache/
 .parcel-cache/

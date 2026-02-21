@@ -1,24 +1,38 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
-import { sendMessage } from '../lib/openrouterClient'
+import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { streamComputerUse } from '../lib/computerUseClient'
+import { BrowserActionStatus, BrowserState } from '../types/browser'
 
 type MessageStatus = 'streaming' | 'done' | 'error'
+
+interface AgentAction {
+  id: string
+  name: string
+  status: BrowserActionStatus
+  message: string
+  url: string
+}
 
 interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
   text: string
   status: MessageStatus
-  thoughtSummary?: string
-  thoughtOpen?: boolean
+  model?: string
+  actions?: AgentAction[]
   error?: string
 }
 
-const AgentPanel = () => {
+interface AgentPanelProps {
+  onBrowserStateChange: (update: Partial<BrowserState>) => void
+}
+
+const AgentPanel = ({ onBrowserStateChange }: AgentPanelProps) => {
   const [isListening, setIsListening] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [followUp, setFollowUp] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [panelError, setPanelError] = useState<string | null>(null)
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const streamAbortRef = useRef<AbortController | null>(null)
   const logRef = useRef<HTMLDivElement>(null)
@@ -26,7 +40,7 @@ const AgentPanel = () => {
 
   const statusLabel = useMemo(() => {
     if (isStreaming) {
-      return 'Generating'
+      return 'Running browser actions'
     }
     return isListening ? 'Listening' : ''
   }, [isListening, isStreaming])
@@ -37,12 +51,15 @@ const AgentPanel = () => {
     }
   }, [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const container = logRef.current
     if (!container || !shouldAutoScrollRef.current) {
       return
     }
-    container.scrollTop = container.scrollHeight
+    const rafId = requestAnimationFrame(() => {
+      container.scrollTop = container.scrollHeight
+    })
+    return () => cancelAnimationFrame(rafId)
   }, [messages])
 
   const onMicToggle = () => {
@@ -72,6 +89,7 @@ const AgentPanel = () => {
     streamAbortRef.current?.abort()
     streamAbortRef.current = null
     setIsStreaming(false)
+    onBrowserStateChange({ isBusy: false })
   }
 
   const onSend = async () => {
@@ -81,50 +99,82 @@ const AgentPanel = () => {
     }
 
     setPanelError(null)
-    const userId = `user-${Date.now()}`
-    const assistantId = `assistant-${Date.now()}`
+    shouldAutoScrollRef.current = true
+    const now = Date.now()
+    const userId = `user-${now}`
+    const assistantId = `assistant-${now}`
 
     setMessages((current) => [
       ...current,
       { id: userId, role: 'user', text: trimmed, status: 'done' },
-      { id: assistantId, role: 'assistant', text: '', status: 'streaming', thoughtSummary: '' },
+      { id: assistantId, role: 'assistant', text: '', status: 'streaming', actions: [] },
     ])
     setFollowUp('')
 
     setIsStreaming(true)
+    onBrowserStateChange({ isBusy: true })
     const controller = new AbortController()
     streamAbortRef.current = controller
 
     try {
-      await sendMessage(
-        { message: trimmed, stream: true },
+      await streamComputerUse(
+        { message: trimmed, session_id: sessionId },
         {
-          onDelta: (delta) => {
+          onSession: (payload) => {
+            setSessionId(payload.session_id)
+            onBrowserStateChange({
+              sessionId: payload.session_id,
+              url: payload.url,
+              screenshotBase64: payload.screenshot_base64,
+              updatedAtMs: payload.updated_at_ms,
+            })
+          },
+          onAssistant: (payload) => {
             updateMessage(assistantId, (message) => ({
               ...message,
-              text: `${message.text}${delta}`,
+              text: message.text ? `${message.text}\n\n${payload.text}` : payload.text,
               status: 'streaming',
             }))
           },
-          onThoughtDelta: (delta) => {
+          onAction: (payload) => {
             updateMessage(assistantId, (message) => ({
               ...message,
-              thoughtSummary: `${message.thoughtSummary ?? ''}${delta}`,
+              actions: [
+                ...(message.actions ?? []),
+                {
+                  id: `${payload.action}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                  name: payload.action,
+                  status: payload.status,
+                  message: payload.message,
+                  url: payload.url,
+                },
+              ],
             }))
-          },
-          onThoughtDone: (summary) => {
-            updateMessage(assistantId, (message) => ({
-              ...message,
-              thoughtSummary: summary || message.thoughtSummary,
-            }))
+
+            onBrowserStateChange({
+              sessionId: payload.session_id,
+              url: payload.url,
+              screenshotBase64: payload.screenshot_base64,
+              updatedAtMs: payload.updated_at_ms,
+              lastAction: payload.action,
+              lastActionStatus: payload.status,
+            })
           },
           onDone: (payload) => {
+            setSessionId(payload.session_id)
             updateMessage(assistantId, (message) => ({
               ...message,
               text: payload.response || message.text,
-              thoughtSummary: payload.thought_summary ?? message.thoughtSummary,
+              model: payload.model,
               status: 'done',
             }))
+            onBrowserStateChange({
+              sessionId: payload.session_id,
+              url: payload.url,
+              screenshotBase64: payload.screenshot_base64,
+              updatedAtMs: payload.updated_at_ms,
+              isBusy: false,
+            })
             setIsStreaming(false)
             streamAbortRef.current = null
           },
@@ -136,6 +186,7 @@ const AgentPanel = () => {
               error: errorText,
             }))
             setPanelError(errorText)
+            onBrowserStateChange({ isBusy: false })
             setIsStreaming(false)
             streamAbortRef.current = null
           },
@@ -143,6 +194,9 @@ const AgentPanel = () => {
         controller.signal,
       )
     } catch (error) {
+      if (controller.signal.aborted) {
+        return
+      }
       const message = error instanceof Error ? error.message : 'Request failed.'
       updateMessage(assistantId, (current) => ({
         ...current,
@@ -150,6 +204,7 @@ const AgentPanel = () => {
         error: message,
       }))
       setPanelError(message)
+      onBrowserStateChange({ isBusy: false })
       setIsStreaming(false)
       streamAbortRef.current = null
     }
@@ -160,49 +215,51 @@ const AgentPanel = () => {
     void onSend()
   }
 
-  const toggleThoughts = (id: string) => {
-    updateMessage(id, (message) => ({
-      ...message,
-      thoughtOpen: !message.thoughtOpen,
-    }))
-  }
-
   return (
-    <div className="h-full flex flex-col bg-[var(--bg-panel)] text-[var(--text-muted)]">
+    <div className="h-full min-h-0 flex flex-col bg-[var(--bg-panel)] text-[var(--text-muted)]">
       <div
         ref={logRef}
         onScroll={onLogScroll}
-        className="flex-1 overflow-auto px-4 py-4 space-y-3 text-[1.05rem] leading-relaxed"
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-4 space-y-3 text-[1.05rem] leading-relaxed"
       >
         {messages.length > 0 && (
           <div role="log" aria-live="polite" aria-label="Conversation history" className="flex flex-col space-y-2 pt-2">
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={message.role === 'user' 
-                  ? 'ml-auto text-right text-[var(--text-primary)] max-w-[85%] bg-[var(--bg-panel-soft)] px-4 py-2.5 rounded-2xl border border-[var(--border-color)]' 
-                  : 'mr-auto text-left text-[var(--text-muted)] max-w-[85%] py-1'}
+                className={message.role === 'user'
+                  ? 'ml-auto text-right text-[var(--text-primary)] max-w-[85%] bg-[var(--bg-panel-soft)] px-4 py-2.5 rounded-2xl border border-[var(--border-color)]'
+                  : 'mr-auto text-left text-[var(--text-muted)] max-w-[92%] py-1'}
               >
-                <p className="whitespace-pre-wrap">
-                  {message.text}
-                </p>
+                <p className="whitespace-pre-wrap">{message.text}</p>
 
-                {message.role === 'assistant' && message.thoughtSummary && (
-                  <div className="mt-2 rounded-md border border-[var(--border-color)] bg-[var(--bg-panel-soft)]">
-                    <button
-                      type="button"
-                      className="w-full px-3 py-2 text-left text-xs tracking-wide uppercase text-[var(--text-subtle)] hover:bg-[var(--bg-panel-elev)]"
-                      aria-expanded={Boolean(message.thoughtOpen)}
-                      onClick={() => toggleThoughts(message.id)}
-                    >
-                      Thought process
-                    </button>
-                    {message.thoughtOpen && (
-                      <div className="px-3 pb-3 text-sm whitespace-pre-wrap text-[var(--text-subtle)]">
-                        {message.thoughtSummary}
+                {message.actions && message.actions.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {message.actions.map((action) => (
+                      <div
+                        key={action.id}
+                        className="rounded-md border border-[var(--border-color)] bg-[var(--bg-panel-soft)] px-2 py-1 text-xs"
+                      >
+                        <span className="text-[var(--text-primary)]">{action.name}</span>
+                        <span className="mx-1 text-[var(--text-subtle)]">·</span>
+                        <span
+                          className={
+                            action.status === 'ok'
+                              ? 'text-green-300'
+                              : action.status === 'blocked'
+                                ? 'text-amber-300'
+                                : 'text-red-300'
+                          }
+                        >
+                          {action.status}
+                        </span>
                       </div>
-                    )}
+                    ))}
                   </div>
+                )}
+
+                {message.model && (
+                  <p className="mt-1 text-xs text-[var(--text-subtle)]">Model: {message.model}</p>
                 )}
 
                 {message.status === 'error' && message.error && (
@@ -219,22 +276,22 @@ const AgentPanel = () => {
           </p>
         )}
 
-          {statusLabel && (
-            <p
-              role="status"
-              aria-live="polite"
-              aria-label="Assistant status"
-              className={isStreaming ? 'generating-glow' : isListening ? 'text-clarity-focus' : 'text-[var(--text-subtle)]'}
-            >
-              {statusLabel}
-            </p>
-          )}
+        {statusLabel && (
+          <p
+            role="status"
+            aria-live="polite"
+            aria-label="Assistant status"
+            className={isStreaming ? 'generating-glow' : isListening ? 'text-clarity-focus' : 'text-[var(--text-subtle)]'}
+          >
+            {statusLabel}
+          </p>
+        )}
       </div>
 
       <form onSubmit={handleSend} className="p-3 border-t border-[var(--border-color)] bg-[var(--bg-panel-soft)]">
         <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-panel)] p-3">
           <label htmlFor="agent-message" className="sr-only">
-            Add a follow-up
+            Add an instruction
           </label>
           <input
             id="agent-message"
@@ -242,17 +299,14 @@ const AgentPanel = () => {
             value={followUp}
             onChange={(event) => setFollowUp(event.target.value)}
             disabled={isStreaming}
-            placeholder="Add a follow-up"
+            placeholder="Tell the agent what to do in the browser"
             className="h-10 w-full border-0 bg-transparent text-[1.05rem] text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] focus:outline-none"
           />
 
           <div className="mt-2 flex items-center gap-2">
             <div className="flex items-center gap-2 text-[var(--text-muted)]">
               <button type="button" className="h-8 min-h-0 min-w-0 rounded-full bg-[var(--bg-panel-elev)] px-3 text-sm" aria-label="Agent mode">
-                ∞ Agent
-              </button>
-              <button type="button" className="h-8 min-h-0 min-w-0 rounded-full px-2 text-sm text-[var(--text-subtle)]" aria-label="Automation mode">
-                Auto
+                Browser Agent
               </button>
             </div>
 

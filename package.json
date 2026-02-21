@@ -11,8 +11,7 @@
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && python main.py",
     "build:frontend": "cd frontend && npm run build",
-    "lint:frontend": "cd frontend && npm run lint",
-    "storybook": "cd frontend && npm run storybook"
+    "lint:frontend": "cd frontend && npm run lint"
   },
   "keywords": [
     "accessibility",
