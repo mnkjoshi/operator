@@ -184,7 +184,7 @@ const AgentPanel = () => {
                   : 'mr-auto text-left text-[var(--text-muted)] max-w-[85%] py-1'}
               >
                 <p className="whitespace-pre-wrap">
-                  {message.text || (message.role === 'assistant' && message.status === 'streaming' ? '...' : '')}
+                  {message.text}
                 </p>
 
                 {message.role === 'assistant' && message.thoughtSummary && (

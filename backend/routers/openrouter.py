@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 from services.openrouter_client import OpenRouterAPIError, OpenRouterClient
 
@@ -9,7 +9,8 @@ client = OpenRouterClient()
 
 
 class OpenRouterRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    class Config:
+        extra = "forbid"
 
     message: str = Field(..., min_length=1)
     context: str | None = None
